@@ -1,0 +1,150 @@
+- hosts: "{{ hosting }}"
+  connection: local
+  gather_facts: False
+
+
+  vars_prompt:
+      - name: "filter_regex"
+        prompt: 'Enter your Contract name/sub-name'
+        private: no
+
+
+  tasks:
+    - name: Contract/Subject/Filter extract
+      block:
+
+
+      - include_tasks: login.yml
+
+
+      - name: Collect Contracts
+        uri:
+          url: https://{{ hosting }}/api/node/mo/uni/tn-{{ tenant }}.json?query-target=children&target-subtree-class=vzBrCP&query-target=subtree&target-subtree-class=vzBrCP
+          method: GET
+          body_format: json
+          return_content: yes
+          headers:
+            Cookie: "{{login.set_cookie}}"
+          validate_certs: False
+        no_log: True
+        register: contracts
+
+
+      - name: Log Contract to Fact
+        set_fact:
+          contract_list: "{{ item.vzBrCP }}"
+        no_log: True
+        loop: "{{ contracts.json.imdata }}"
+        when: 'item.vzBrCP.attributes.dn is search(filter_regex)'
+
+
+      - name: Fail if Contract does not exist
+        fail:
+          msg: "Such contract does not exist"
+        when: contract_list is not defined
+
+
+      - name: Collect Subject > Filter mapping
+        uri:
+          url: https://{{ hosting }}/api/node/mo/{{ item.vzBrCP.attributes.dn }}.json?query-target=subtree&target-subtree-class=vzSubj&target-subtree-class=vzRsSubjFiltAtt,vzRsFiltAtt&query-target=subtree
+          method: GET
+          body_format: json
+          return_content: no
+          headers:
+            Cookie: "{{login.set_cookie}}"
+          validate_certs: False
+        no_log: True
+        loop: "{{ contracts.json.imdata }}"
+        register: con_sub_fil
+        when:
+             - "item.vzBrCP.attributes.dn | regex_search(filter_regex)"
+             - item.vzBrCP.attributes.dn is defined
+        loop_control:
+          pause: 0.2
+
+
+      - name: Collect Contract to EPG Assignement
+        uri:
+          url: https://{{ hosting }}/api/node/mo/uni/tn-{{ tenant }}/brc-{{ item.vzBrCP.attributes.name }}.json?query-target=subtree&target-subtree-class=vzRtProv,vzRtCons,vzRtAnyToProv,vzRtAnyToCons
+          method: GET
+          body_format: json
+          return_content: yes
+          headers:
+            Cookie: "{{login.set_cookie}}"
+          validate_certs: False
+        loop: "{{ contracts.json.imdata }}"
+        no_log: True
+        register: epg_contract
+        when:
+             - "item.vzBrCP.attributes.name | regex_search(filter_regex)"
+             - item.vzBrCP.attributes.name is defined
+        loop_control:
+          pause: 0.2
+
+
+      - name: Banner
+        debug:
+          msg:
+             - "-------------------------------------- STARTS HERE -----------------------------------------"
+             - "-------------------------------------- STARTS HERE -----------------------------------------"
+             - "-------------------------------------- STARTS HERE -----------------------------------------"
+             - "-------------------------------------- STARTS HERE -----------------------------------------"
+             - "-------------------------------------- STARTS HERE -----------------------------------------"
+             - "-------------------------------------- STARTS HERE -----------------------------------------"
+             - "-------------------------------------- STARTS HERE -----------------------------------------"
+             - "-------------------------------------- STARTS HERE -----------------------------------------"
+             - "-------------------------------------- STARTS HERE -----------------------------------------"
+
+
+      - name: REGEX OUT Contract > Subject > Filter mapping
+        debug:
+          msg:
+             - "====================================================="
+             - "Contract Name: {{ item.item.vzBrCP.attributes.name }}"
+             - "Subject: {{ item.json | json_query('imdata[*].vzSubj.attributes.name') | join(' | ')  }}"
+             - "Filters (Both-Dir): {{ item.json | json_query('imdata[*].vzRsSubjFiltAtt.attributes.tnVzFilterName') | join(' | ') }}"
+             - "Filters (Non-Both-Dir): {{ item.json | json_query('imdata[*].vzRsFiltAtt.attributes.tnVzFilterName') | join(' | ') }}"
+        loop: "{{ con_sub_fil.results }}"
+        when: item.json is defined and item.item.vzBrCP is defined
+
+
+      - name: Take a break ...
+        pause:
+           seconds: 120
+
+
+      - name: REGEX OUT Contract > EPG
+        debug:
+          msg:
+             - "====================================================="
+             - "Contract: {{ item.item.vzBrCP.attributes.name }}"
+             - "EPG AP/L3out Consumed: {{ item.json.imdata | json_query('[*].vzRtCons.attributes.tDn') | join(' | ') }}"
+             - "EPG AP/L3out Provided: {{ item.json.imdata | json_query('[*].vzRtProv.attributes.tDn') | join(' | ') }}"
+             - "VRF VzAny Consumed: {{ item.json.imdata | json_query('[*].vzRtAnyToCons.attributes.tDn') | join(' | ') }}"
+             - "VRF VzAny Provided: {{ item.json.imdata | json_query('[*].vzRtAnyToProv.attributes.tDn') | join(' | ') }}"
+        loop: "{{ epg_contract.results }}"
+        when: item.json is defined
+
+
+      - name: Banner
+        debug:
+          msg:
+             - "-------------------------------------- ENDS HERE ------------------------------------------"
+             - "-------------------------------------- ENDS HERE ------------------------------------------"
+             - "-------------------------------------- ENDS HERE ------------------------------------------"
+             - "-------------------------------------- ENDS HERE ------------------------------------------"
+             - "-------------------------------------- ENDS HERE ------------------------------------------"
+             - "-------------------------------------- ENDS HERE ------------------------------------------"
+             - "-------------------------------------- ENDS HERE ------------------------------------------"
+             - "-------------------------------------- ENDS HERE ------------------------------------------"
+             - "-------------------------------------- ENDS HERE ------------------------------------------"
+
+
+      rescue:
+        - name: Caught an exception
+          debug:
+            msg:
+                 - "GENERAL ERROR, try these methods:"
+                 - "1.Verify login details"
+                 - "2.APIC reachibility"
+                 - "3.Run Ansible playbook with more verbose mode -vvv)"

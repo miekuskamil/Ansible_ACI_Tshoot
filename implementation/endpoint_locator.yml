@@ -1,0 +1,99 @@
+- hosts: "{{ hosting }}"
+  connection: local
+  gather_facts: False
+
+  vars_prompt:
+   - name: "search_item"
+     prompt: 'Enter your search item e.g. 00:50:56:BD:2E:6C or 10.0.0.1'
+     private: no
+
+  tasks:
+
+    - include_tasks: login.yml
+
+    - name: Locate Endpoint - IP address
+      uri:
+        url: https://{{ hosting }}/api/node/class/fvCEp.json?rsp-subtree=full&rsp-subtree-include=required&rsp-subtree-filter=eq(fvIp.addr,"{{ search_item }}")
+        method: GET
+        body_format: json
+        return_content: yes
+        headers:
+          Cookie: "{{login.set_cookie}}"
+        validate_certs: False
+#      no_log: True
+      register: endpoint_ip
+      when: search_item|string is search("^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$")
+
+
+    - name: Locate Endpoint - MAC address
+      uri:
+        url: https://{{ hosting }}/api/node/class/fvCEp.json?rsp-subtree=full&rsp-subtree-class=fvCEp,fvRsCEpToPathEp,fvIp,fvRsHyper,fvRsToNic,fvRsToVm&query-target-filter=eq(fvCEp.mac,"{{ search_item }}")
+        method: GET
+        body_format: json
+        return_content: yes
+        headers:
+          Cookie: "{{login.set_cookie}}"
+        validate_certs: False
+ #     no_log: True
+      register: endpoint_mac
+      when: search_item|string is search("^[a-fA-F0-9:]{17}|[a-fA-F0-9]{12}$")
+
+
+    - name: Fail if no IP entries exist
+      fail:
+        msg: "No IP entries exists, try other one..."
+      when:  (endpoint_ip is defined and endpoint_mac.skipped is defined) and endpoint_ip.json.totalCount == "0"
+
+
+    - name: Fail if no MAC entries exist
+      fail:
+        msg: "No MAC entries exists, try other one..."
+      when:  (endpoint_mac is defined and endpoint_ip.skipped is defined) and endpoint_mac.json.totalCount == "0"
+
+
+    - name: Set endpoint end ports
+      uri:
+        url: https://{{ hosting }}/api/node/mo/{{ endpoint_ip.json.imdata[0].fvCEp.attributes.dn }}.json?query-target=subtree&target-subtree-class=fvCEp,fvRsCEpToPathEp,fvRsHyper,fvRsToNic,fvRsToVm
+        method: GET
+        body_format: json
+        return_content: yes
+        headers:
+          Cookie: "{{login.set_cookie}}"
+        validate_certs: False
+      no_log: True
+      register: endpoint_ip_sec
+      when: search_item|string is search("^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$")
+
+
+    - name: Banner
+      debug:
+        msg:
+           - "-------------------------------------- STARTS HERE -----------------------------------------"
+           - "-------------------------------------- STARTS HERE -----------------------------------------"
+
+    - name: Debug IP address
+      debug:
+        msg: 
+            - "Location: {{ endpoint_ip.json.imdata | json_query('[*].fvCEp.attributes.dn') | join(' | ') }}"
+            - "IP address: {{ endpoint_ip.json.imdata | json_query('[*].fvCEp.attributes.ip') | join(' | ') }}"
+            - "MAC address: {{ endpoint_ip.json.imdata | json_query('[*].fvCEp.attributes.mac') | join(' | ') }}"
+            - "Vlan ID: {{ endpoint_ip.json.imdata | json_query('[*].fvCEp.attributes.encap') | join(' | ') }}"
+            - "Path: {{ endpoint_ip_sec.json.imdata | json_query('[*].fvRsCEpToPathEp.attributes.tDn') | join(' | ') }}"
+      when: endpoint_ip is defined and endpoint_ip.skipped is not defined
+
+
+    - name: Debug MAC address
+      debug:
+        msg:
+            - "Location: {{ endpoint_mac.json.imdata | json_query('[*].fvCEp.attributes.dn') | join(' | ') }}"
+            - "IP address: {{ endpoint_mac.json.imdata | json_query('[*].fvCEp.attributes.ip') | join(' | ') }}"
+            - "MAC address: {{ endpoint_mac.json.imdata | json_query('[*].fvCEp.attributes.mac') | join(' | ') }}"
+            - "Vlan ID: {{ endpoint_mac.json.imdata | json_query('[*].fvCEp.attributes.encap') | join(' | ') }}"
+            - "Path: {{ endpoint_mac.json.imdata | json_query('[*].fvCEp.children[0].fvRsCEpToPathEp.attributes.tDn') | join(' | ') }}"
+      when: endpoint_mac is defined and endpoint_mac.skipped is not defined
+
+    - name: Banner
+      debug:
+        msg:
+           - "-------------------------------------- ENDS HERE -----------------------------------------"
+           - "-------------------------------------- ENDS HERE -----------------------------------------"
