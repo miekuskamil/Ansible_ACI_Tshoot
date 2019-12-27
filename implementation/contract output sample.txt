@@ -1,6 +1,8 @@
-pi@raspberrypi:~/Ansible_ACI_Tshoot/implementation $ sudo ansible-playbook contract_epg_parser.yml -i ../inventories/inventory.txt --vault-password-file ../vault.txt --extra-vars "hosting=sandboxapicdc.cisco.com filter_regex=web tenant=SnV"
+pi@raspberrypi:~/Ansible_ACI_Tshoot/implementation $ sudo ansible-playbook contract_epg_parser.yml -i ../inventories/inventory.txt --vault-password-file ../vault.txt --limit "sandboxapicdc.cisco.com,"
+Enter your Contract name/sub-name: web
+Enter your Tenant name: SnV
 
-PLAY [sandboxapicdc.cisco.com] ************************************************************************************************************************************************************************************************************************************************
+PLAY [all] ********************************************************************************************************************************************************************************************************************************************************************
 
 TASK [include_tasks] **********************************************************************************************************************************************************************************************************************************************************
 included: /home/pi/Ansible_ACI_Tshoot/implementation/login.yml for sandboxapicdc.cisco.com
@@ -53,7 +55,7 @@ ok: [sandboxapicdc.cisco.com] => {
     "msg": [
         "Contract: web",
         "Subject: http",
-        "Filters_Both_Dir: http | https",
+        "Filters_Both_Dir: http",
         "Filters_Non_Both_Dir: "
     ]
 }
@@ -70,8 +72,8 @@ ok: [sandboxapicdc.cisco.com] => {
         "Contract: web",
         "EPG_AP_L3out_Consumed: ",
         "EPG_AP_L3out_Provided: uni/tn-SnV/ap-Chaos/epg-Web | uni/tn-SnV/ap-Rescue/epg-Web | uni/tn-SnV/ap-Power_Up/epg-Web | uni/tn-SnV/ap-Evolution_X/epg-Web",
-        "VRF_VzAny_Consumed: uni/tn-SnV/ctx-Superverse/any",
-        "VRF_VzAny_Provided: uni/tn-SnV/ctx-Superverse/any"
+        "VRF_VzAny_Consumed: ",
+        "VRF_VzAny_Provided: "
     ]
 }
 
@@ -93,4 +95,3 @@ ok: [sandboxapicdc.cisco.com] => {
 PLAY RECAP ********************************************************************************************************************************************************************************************************************************************************************
 sandboxapicdc.cisco.com    : ok=13   changed=0    unreachable=0    failed=0
 
-pi@raspberrypi:~/Ansible_ACI_Tshoot/implementation $

@@ -1,7 +1,7 @@
 ---
 - name: Login
   uri:
-    url: https://{{ hosting }}/api/aaaLogin.json
+    url: https://{{ inventory_hostname }}/api/aaaLogin.json
     method: POST
     body: '"{ "aaaUser" : { "attributes" : { "name" : "{{ username }}" , "pwd" : "{{ password }}" } } }"'
     status_code: 200

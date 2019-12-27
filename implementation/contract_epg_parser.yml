@@ -1,4 +1,4 @@
-- hosts: "{{ hosting }}"
+- hosts: all
   connection: local
   gather_facts: False
 
@@ -7,6 +7,10 @@
       - name: "filter_regex"
         prompt: 'Enter your Contract name/sub-name'
         private: no
+      - name: "tenant"
+        prompt: 'Enter your Tenant name'
+        private: no
+
 
 
   tasks:
@@ -19,7 +23,7 @@
 
       - name: Collect Contracts
         uri:
-          url: https://{{ hosting }}/api/node/mo/uni/tn-{{ tenant }}.json?query-target=children&target-subtree-class=vzBrCP&query-target=subtree&target-subtree-class=vzBrCP
+          url: https://{{ inventory_hostname }}/api/node/mo/uni/tn-{{ tenant }}.json?query-target=children&target-subtree-class=vzBrCP&query-target=subtree&target-subtree-class=vzBrCP
           method: GET
           body_format: json
           return_content: yes
@@ -46,7 +50,7 @@
 
       - name: Collect Subject > Filter mapping
         uri:
-          url: https://{{ hosting }}/api/node/mo/{{ item.vzBrCP.attributes.dn }}.json?query-target=subtree&target-subtree-class=vzSubj&target-subtree-class=vzRsSubjFiltAtt,vzRsFiltAtt&query-target=subtree
+          url: https://{{ inventory_hostname }}/api/node/mo/{{ item.vzBrCP.attributes.dn }}.json?query-target=subtree&target-subtree-class=vzSubj&target-subtree-class=vzRsSubjFiltAtt,vzRsFiltAtt&query-target=subtree
           method: GET
           body_format: json
           return_content: no
@@ -65,7 +69,7 @@
 
       - name: Collect Contract to EPG Assignement
         uri:
-          url: https://{{ hosting }}/api/node/mo/uni/tn-{{ tenant }}/brc-{{ item.vzBrCP.attributes.name }}.json?query-target=subtree&target-subtree-class=vzRtProv,vzRtCons,vzRtAnyToProv,vzRtAnyToCons
+          url: https://{{ inventory_hostname }}/api/node/mo/uni/tn-{{ tenant }}/brc-{{ item.vzBrCP.attributes.name }}.json?query-target=subtree&target-subtree-class=vzRtProv,vzRtCons,vzRtAnyToProv,vzRtAnyToCons
           method: GET
           body_format: json
           return_content: yes
