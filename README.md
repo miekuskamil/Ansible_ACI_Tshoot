@@ -6,5 +6,5 @@
 <p><br /><strong>ENDPOINT_LOCATOR</strong><br />===============</p>
 <p>Endpoint Locator is a poor man version of the GUI APIC option, you can pass either mac or IP address as argument and see how it maps to Tenant/EPG/Port.</p>
 <blockquote>
-<p><strong><em>sudo ansible-playbook endpoint_locator.yml -i ../inventories/inventory.txt --vault-password-file ../vault.txt --extra-vars "hosting=sandboxapicdc.cisco.com search_item=1.1.1.1"</em></strong></p>
+<p><strong><em>sudo ansible-playbook endpoint_locator.yml -i ../inventories/inventory.txt --vault-password-file ../vault.txt --limit "sandboxapicdc.cisco.com,"</em></strong></p>
 </blockquote>

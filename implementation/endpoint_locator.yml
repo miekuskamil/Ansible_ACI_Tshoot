@@ -1,4 +1,4 @@
-- hosts: "{{ hosting }}"
+- hosts: all
   connection: local
   gather_facts: False
 
@@ -13,7 +13,7 @@
 
     - name: Locate Endpoint - IP address
       uri:
-        url: https://{{ hosting }}/api/node/class/fvCEp.json?rsp-subtree=full&rsp-subtree-include=required&rsp-subtree-filter=eq(fvIp.addr,"{{ search_item }}")
+        url: https://{{ inventory_hostname }}/api/node/class/fvCEp.json?rsp-subtree=full&rsp-subtree-include=required&rsp-subtree-filter=eq(fvIp.addr,"{{ search_item }}")
         method: GET
         body_format: json
         return_content: yes
@@ -27,7 +27,7 @@
 
     - name: Locate Endpoint - MAC address
       uri:
-        url: https://{{ hosting }}/api/node/class/fvCEp.json?rsp-subtree=full&rsp-subtree-class=fvCEp,fvRsCEpToPathEp,fvIp,fvRsHyper,fvRsToNic,fvRsToVm&query-target-filter=eq(fvCEp.mac,"{{ search_item }}")
+        url: https://{{ inventory_hostname }}/api/node/class/fvCEp.json?rsp-subtree=full&rsp-subtree-class=fvCEp,fvRsCEpToPathEp,fvIp,fvRsHyper,fvRsToNic,fvRsToVm&query-target-filter=eq(fvCEp.mac,"{{ search_item }}")
         method: GET
         body_format: json
         return_content: yes
@@ -53,7 +53,7 @@
 
     - name: Set endpoint end ports
       uri:
-        url: https://{{ hosting }}/api/node/mo/{{ endpoint_ip.json.imdata[0].fvCEp.attributes.dn }}.json?query-target=subtree&target-subtree-class=fvCEp,fvRsCEpToPathEp,fvRsHyper,fvRsToNic,fvRsToVm
+        url: https://{{ inventory_hostname }}/api/node/mo/{{ endpoint_ip.json.imdata[0].fvCEp.attributes.dn }}.json?query-target=subtree&target-subtree-class=fvCEp,fvRsCEpToPathEp,fvRsHyper,fvRsToNic,fvRsToVm
         method: GET
         body_format: json
         return_content: yes
