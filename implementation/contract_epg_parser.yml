@@ -30,7 +30,7 @@
         register: contracts
 
 
-      - name: Log Contract to Fact
+      - name: Fact - Contract match
         set_fact:
           contract_list: "{{ item.vzBrCP }}"
         no_log: True
@@ -82,30 +82,51 @@
           pause: 0.2
 
 
-      - name: Banner
-        debug:
-          msg:
-             - "-------------------------------------- STARTS HERE -----------------------------------------"
-             - "-------------------------------------- STARTS HERE -----------------------------------------"
-             - "-------------------------------------- STARTS HERE -----------------------------------------"
-             - "-------------------------------------- STARTS HERE -----------------------------------------"
-             - "-------------------------------------- STARTS HERE -----------------------------------------"
-             - "-------------------------------------- STARTS HERE -----------------------------------------"
-             - "-------------------------------------- STARTS HERE -----------------------------------------"
-             - "-------------------------------------- STARTS HERE -----------------------------------------"
-             - "-------------------------------------- STARTS HERE -----------------------------------------"
-
-
-      - name: REGEX OUT Contract > Subject > Filter mapping
-        debug:
-          msg:
-             - "====================================================="
-             - "Contract Name: {{ item.item.vzBrCP.attributes.name }}"
-             - "Subject: {{ item.json | json_query('imdata[*].vzSubj.attributes.name') | join(' | ')  }}"
-             - "Filters (Both-Dir): {{ item.json | json_query('imdata[*].vzRsSubjFiltAtt.attributes.tnVzFilterName') | join(' | ') }}"
-             - "Filters (Non-Both-Dir): {{ item.json | json_query('imdata[*].vzRsFiltAtt.attributes.tnVzFilterName') | join(' | ') }}"
+      - name: Fact - regex for Contract > Subject > Filter mapping
+        set_fact:
+          Contract: "Contract Name: {{ item.item.vzBrCP.attributes.name }}"
+          Subject: "Subject: {{ item.json | json_query('imdata[*].vzSubj.attributes.name') | join(' | ')  }}"
+          Filters_Both_Dir: "Filters_Both_Dir: {{ item.json | json_query('imdata[*].vzRsSubjFiltAtt.attributes.tnVzFilterName') | join(' | ') }}"
+          Filters_Non_Both_Dir: "Filters_Non_Both_Dir: {{ item.json | json_query('imdata[*].vzRsFiltAtt.attributes.tnVzFilterName') | join(' | ') }}"
+        no_log: True
         loop: "{{ con_sub_fil.results }}"
         when: item.json is defined and item.item.vzBrCP is defined
+
+
+      - name: Fact - regex for Contract > EPG
+        set_fact:
+          Contract: "Contract: {{ item.item.vzBrCP.attributes.name }}"
+          EPG_AP_L3out_Consumed: "EPG_AP_L3out_Consumed: {{ item.json.imdata | json_query('[*].vzRtCons.attributes.tDn') | join(' | ') }}"
+          EPG_AP_L3out_Provided: "EPG_AP_L3out_Provided: {{ item.json.imdata | json_query('[*].vzRtProv.attributes.tDn') | join(' | ') }}"
+          VRF_VzAny_Consumed: "VRF_VzAny_Consumed: {{ item.json.imdata | json_query('[*].vzRtAnyToCons.attributes.tDn') | join(' | ') }}"
+          VRF_VzAny_Provided: "VRF_VzAny_Provided: {{ item.json.imdata | json_query('[*].vzRtAnyToProv.attributes.tDn') | join(' | ') }}"
+        no_log: True
+        loop: "{{ epg_contract.results }}"
+        when: item.json is defined
+
+
+      - name: Banner Start
+        debug:
+          msg:
+             - "-------------------------------------- STARTS HERE -----------------------------------------"
+             - "-------------------------------------- STARTS HERE -----------------------------------------"
+             - "-------------------------------------- STARTS HERE -----------------------------------------"
+             - "-------------------------------------- STARTS HERE -----------------------------------------"
+             - "-------------------------------------- STARTS HERE -----------------------------------------"
+             - "-------------------------------------- STARTS HERE -----------------------------------------"
+             - "-------------------------------------- STARTS HERE -----------------------------------------"
+             - "-------------------------------------- STARTS HERE -----------------------------------------"
+             - "-------------------------------------- STARTS HERE -----------------------------------------"
+
+
+
+      - name: FINAL - output Contract > Subject > Filter mapping list
+        debug:
+          msg:
+             - "{{ Contract }}"
+             - "{{ Subject }}"
+             - "{{ Filters_Both_Dir }}"
+             - "{{ Filters_Non_Both_Dir }}"
 
 
       - name: Take a break ...
@@ -113,20 +134,20 @@
            seconds: 120
 
 
-      - name: REGEX OUT Contract > EPG
+
+
+      - name: FINAL - output Contract > EPG mapping list
         debug:
           msg:
-             - "====================================================="
-             - "Contract: {{ item.item.vzBrCP.attributes.name }}"
-             - "EPG AP/L3out Consumed: {{ item.json.imdata | json_query('[*].vzRtCons.attributes.tDn') | join(' | ') }}"
-             - "EPG AP/L3out Provided: {{ item.json.imdata | json_query('[*].vzRtProv.attributes.tDn') | join(' | ') }}"
-             - "VRF VzAny Consumed: {{ item.json.imdata | json_query('[*].vzRtAnyToCons.attributes.tDn') | join(' | ') }}"
-             - "VRF VzAny Provided: {{ item.json.imdata | json_query('[*].vzRtAnyToProv.attributes.tDn') | join(' | ') }}"
-        loop: "{{ epg_contract.results }}"
-        when: item.json is defined
+             - "{{ Contract }}"
+             - "{{ EPG_AP_L3out_Consumed }}"
+             - "{{ EPG_AP_L3out_Provided }}"
+             - "{{ VRF_VzAny_Consumed }}"
+             - "{{ VRF_VzAny_Provided }}"
 
 
-      - name: Banner
+
+      - name: Banner End
         debug:
           msg:
              - "-------------------------------------- ENDS HERE ------------------------------------------"
@@ -141,10 +162,10 @@
 
 
       rescue:
-        - name: Caught an exception
+        - name: Caught a general exception
           debug:
             msg:
-                 - "GENERAL ERROR, try these methods:"
+                 - "GENERAL ERROR, try one of these methods:"
                  - "1.Verify login details"
                  - "2.APIC reachibility"
                  - "3.Run Ansible playbook with more verbose mode -vvv)"
